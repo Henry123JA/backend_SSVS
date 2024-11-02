@@ -12,24 +12,24 @@ import org.springframework.web.bind.annotation.RestController;
 public class TestController {
   @GetMapping("/all")
   public String allAccess() {
-    return "Public Content.";
+    return "Public Content.TODOS";
   }
 
-  @GetMapping("/user")
-  @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
+  @GetMapping("/paciente")
+  @PreAuthorize("hasRole('PACIENTE') or hasRole('ADMIN')")
   public String userAccess() {
-    return "User Content.";
+    return "Pacienter Content. DE PACIENTE...";
   }
 
-  @GetMapping("/mod")
-  @PreAuthorize("hasRole('MODERATOR')")
+  @GetMapping("/medico")
+  @PreAuthorize("hasRole('MEDICO')")
   public String moderatorAccess() {
-    return "Moderator Board.";
+    return "Medico Board...DE MEDICO";
   }
 
   @GetMapping("/admin")
   @PreAuthorize("hasRole('ADMIN')")
   public String adminAccess() {
-    return "Admin Board.";
+    return "Admin Board...DE ADMIN";
   }
 }
