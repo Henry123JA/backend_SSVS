@@ -39,12 +39,7 @@ public class DataInitializer implements CommandLineRunner {
             roleRepository.save(roleAdmin);
         }
 
-        // Insert users if not already present
-        /*if (userRepository.count() == 0) {
-            createUser("paciente", "paciente@paciente.com", "password", ERole.ROLE_PACIENTE);
-            createUser("medico", "medico@medico.com", "password", ERole.ROLE_MEDICO);
-            createUser("admin", "admin@admin.com", "password", ERole.ROLE_ADMIN);
-        }*/
+
         if(userRepository.count() == 0){
             Set<ERole> rolesVariosPaciente = new HashSet<>();
             rolesVariosPaciente.add(ERole.ROLE_PACIENTE);
@@ -54,26 +49,15 @@ public class DataInitializer implements CommandLineRunner {
 
             Set<ERole> rolesVariosAdmin = new HashSet<>();
             rolesVariosAdmin.add(ERole.ROLE_ADMIN);
-            rolesVariosAdmin.add(ERole.ROLE_MEDICO);
-            rolesVariosAdmin.add(ERole.ROLE_PACIENTE);
+            //rolesVariosAdmin.add(ERole.ROLE_MEDICO);
+            //rolesVariosAdmin.add(ERole.ROLE_PACIENTE);
 
             createUser("paciente","paciente@paciente.com","password",rolesVariosPaciente);
             createUser("medico","medico@medico.com","password",rolesVariosMedico);
             createUser("admin","admin@admin.com","password",rolesVariosAdmin);
         }
     }
-/*
-    private void createUser(String username, String email, String password, ERole role) {
-        if (!userRepository.existsByUsername(username)) {
-            User user = new User(username, email, passwordEncoder.encode(password));
-            Set<Role> roles = new HashSet<>();
-            Role userRole = roleRepository.findByName(role)
-                    .orElseThrow(() -> new RuntimeException("Error: Role not found."));
-            roles.add(userRole);
-            user.setRoles(roles);
-            userRepository.save(user);
-        }
-    }*/
+
     private void createUser(String username, String email, String password, Set<ERole> roles) {
         if (!userRepository.existsByUsername(username)) {
             User user = new User(username, email, passwordEncoder.encode(password));
