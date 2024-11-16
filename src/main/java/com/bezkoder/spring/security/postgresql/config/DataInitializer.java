@@ -1,10 +1,8 @@
 package com.bezkoder.spring.security.postgresql.config;
 
-import com.bezkoder.spring.security.postgresql.models.ERole;
-import com.bezkoder.spring.security.postgresql.models.Role;
-import com.bezkoder.spring.security.postgresql.models.User;
-import com.bezkoder.spring.security.postgresql.repository.RoleRepository;
-import com.bezkoder.spring.security.postgresql.repository.UserRepository;
+import com.bezkoder.spring.security.postgresql.models.*;
+import com.bezkoder.spring.security.postgresql.repository.*;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,6 +20,12 @@ public class DataInitializer implements CommandLineRunner {
 
     @Autowired
     UserRepository userRepository;
+
+    @Autowired
+    MedicoRepository medicoRepository;
+
+    @Autowired
+    EspecialidadRepository especialidadRepository;
 
     @Autowired
     PasswordEncoder passwordEncoder;
@@ -55,7 +59,18 @@ public class DataInitializer implements CommandLineRunner {
             createUser("paciente","paciente@paciente.com","password",rolesVariosPaciente);
             createUser("medico","medico@medico.com","password",rolesVariosMedico);
             createUser("admin","admin@admin.com","password",rolesVariosAdmin);
+
+            createMedico("medico1","medico1@medico1.com","password","8960407","M","77906781");
+            createMedico("medico2","medico2@medico2.com","password","3960306","F","77906711");
         }
+        if (especialidadRepository.count() == 0) {
+            createEspecialidad("Cardiología", "Especialidad médica que se ocupa de las enfermedades del corazón y del sistema circulatorio.");
+            createEspecialidad("Neurología", "Especialidad que se dedica al diagnóstico y tratamiento de los trastornos del sistema nervioso.");
+            createEspecialidad("Pediatría", "Rama de la medicina dedicada al cuidado de los niños y adolescentes.");
+            createEspecialidad("Dermatología", "Especialidad que trata las enfermedades de la piel, cabello y uñas.");
+            createEspecialidad("Oncología", "Especialidad médica que se ocupa del diagnóstico y tratamiento del cáncer.");
+        }
+        //assignEspecialidadesToMedicos();
     }
 
     private void createUser(String username, String email, String password, Set<ERole> roles) {
@@ -71,6 +86,77 @@ public class DataInitializer implements CommandLineRunner {
 
             user.setRoles(userRoles);
             userRepository.save(user);
+
+            // Si el usuario tiene el rol MEDICO, crear un registro en la tabla 'medicos'
+            if (roles.contains(ERole.ROLE_MEDICO)) {
+                Medico medico = new Medico();
+                medico.setUser(user);  // Establecemos la relación con el usuario
+                // Los demás campos como ci, sexo y telefono se dejan como null por defecto
+                medicoRepository.save(medico);
+            }
+        }
+    }
+    private void createMedico(String username, String email, String password,String ci,String sexo,String telefono) {
+        if (!userRepository.existsByUsername(username)) {
+            User user = new User(username, email, passwordEncoder.encode(password));
+            Set<Role> userRoles = new HashSet<>();
+
+                Role userRole = roleRepository.findByName(ERole.ROLE_MEDICO)
+                        .orElseThrow(() -> new RuntimeException("Error: Role " + " not found."));
+                userRoles.add(userRole);
+
+            user.setRoles(userRoles);
+            userRepository.save(user);
+
+            Medico medico = new Medico();
+            medico.setUser(user);  // Establecemos la relación con el usuario
+            medico.setCi(ci);
+            medico.setSexo(sexo);
+            medico.setTelefono(telefono);
+            medicoRepository.save(medico);
+        }
+    }
+    private void createEspecialidad(String nombre, String descripcion) {
+        // Verificamos si la especialidad ya existe
+        Optional<Especialidad> especialidadOpt = especialidadRepository.findByNombre(nombre);
+        if (especialidadOpt.isEmpty()) {
+            Especialidad especialidad = new Especialidad();
+            especialidad.setNombre(nombre);
+            especialidad.setDescripcion(descripcion);
+            especialidadRepository.save(especialidad);
+        }
+    }
+
+    @Transactional
+    private void assignEspecialidadesToMedicos() {
+        // Asignar especialidades a médicos para la inicialización
+        Optional<Medico> medicoOpt = medicoRepository.findById(1L); // Buscar el primer médico por ID
+        Optional<Especialidad> cardiologia = especialidadRepository.findByNombre("Cardiología");
+        Optional<Especialidad> neurologia = especialidadRepository.findByNombre("Neurología");
+
+        if (medicoOpt.isPresent() && cardiologia.isPresent() && neurologia.isPresent()) {
+            Medico medico = medicoOpt.get();
+            Especialidad cardiologiaEspecialidad = cardiologia.get();
+            Especialidad neurologiaEspecialidad = neurologia.get();
+
+            // Asociamos las especialidades con el médico
+            medico.addEspecialidad(cardiologiaEspecialidad);
+            medico.addEspecialidad(neurologiaEspecialidad);
+
+            medicoRepository.save(medico);
+        }
+
+        // Asignar más especialidades a otros médicos de la misma forma si es necesario
+        medicoOpt = medicoRepository.findById(2L); // Buscar el segundo médico
+        Optional<Especialidad> pediatria = especialidadRepository.findByNombre("Pediatría");
+
+        if (medicoOpt.isPresent() && pediatria.isPresent()) {
+            Medico medico = medicoOpt.get();
+            Especialidad pediatriaEspecialidad = pediatria.get();
+
+            // Asociamos la especialidad con el médico
+            medico.addEspecialidad(pediatriaEspecialidad);
+            medicoRepository.save(medico);
         }
     }
 

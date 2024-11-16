@@ -92,6 +92,8 @@ public class WebSecurityConfig { // extends WebSecurityConfigurerAdapter {
           auth.requestMatchers("/api/auth/**").permitAll()
               .requestMatchers("/api/test/**").permitAll()
                   .requestMatchers("/api/users/**").permitAll()
+                  .requestMatchers("/api/medicos/**").permitAll()
+                   .requestMatchers("/api/especialidades/**").permitAll()
               .anyRequest().authenticated()
         );
     

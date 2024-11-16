@@ -9,6 +9,7 @@ import com.bezkoder.spring.security.postgresql.exceptions.ResourceNotFoundExcept
 import com.bezkoder.spring.security.postgresql.payload.response.MessageResponse;
 import com.bezkoder.spring.security.postgresql.repository.RoleRepository;
 import com.bezkoder.spring.security.postgresql.repository.UserRepository;
+import com.bezkoder.spring.security.postgresql.repository.MedicoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,6 +43,9 @@ public class UserController {
     RoleRepository roleRepository;
 
     @Autowired
+    MedicoRepository medicoRepository;
+
+    @Autowired
     PasswordEncoder encoder;
 
     @GetMapping
@@ -53,6 +57,7 @@ public class UserController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Object> createUser(@RequestBody CreateUserRequest createUserRequest) {
+        boolean isMedico = false;
         // Verificar si el usuario ya existe por nombre de usuario o correo
         if (userRepository.existsByUsername(createUserRequest.getUsername())) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: El nombre de usuario ya está en uso"));
@@ -84,6 +89,7 @@ public class UserController {
                         Role medicoRole = roleRepository.findByName(ERole.ROLE_MEDICO)
                                 .orElseThrow(() -> new RuntimeException("Error: Role not found."));
                         roles.add(medicoRole);
+                        isMedico = !isMedico;
                         break;
                     case "ROLE_PACIENTE":
                         Role pacienteRole = roleRepository.findByName(ERole.ROLE_PACIENTE)
@@ -99,7 +105,11 @@ public class UserController {
 
         // Guardar el nuevo usuario
         User savedUser = userRepository.save(user);
-
+        if (isMedico) {
+            // Crear un nuevo Medico con los valores de ci, sexo, telefono como null
+            Medico newMedico = new Medico(null, null, null, savedUser);
+            medicoRepository.save(newMedico);
+        }
         return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
     }
 
@@ -188,16 +198,25 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
-
-
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + id));
 
+        boolean isMedico = user.getRoles().stream()
+                .anyMatch(role -> role.getName().equals(ERole.ROLE_MEDICO));
+
+        if (isMedico) {
+            Medico medico = medicoRepository.findByUser(user)
+                    .orElseThrow(() -> new ResourceNotFoundException("Medico not found for user with id " + id));
+            medicoRepository.delete(medico);
+        }
+
         userRepository.delete(user);
+
         return ResponseEntity.noContent().build();
     }
+
 }
 
