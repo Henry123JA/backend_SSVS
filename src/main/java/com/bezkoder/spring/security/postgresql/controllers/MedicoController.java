@@ -39,8 +39,6 @@ public class MedicoController {
     @Autowired
     private EspecialidadRepository especialidadRepository;
 
-    @Autowired
-    private MedicoEspecialidadRepository medicoEspecialidadRepository;
 
     @Autowired
     private MedicoService medicoService;
@@ -198,7 +196,13 @@ public class MedicoController {
         Especialidad especialidad = especialidadRepository.findById(especialidadId)
                 .orElseThrow(() -> new ResourceNotFoundException("Especialidad no encontrada con id " + especialidadId));
 
-        medico.addEspecialidad(especialidad);
+        if (!medico.getEspecialidades().contains(especialidad)) {/*
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new MessageResponse("El médico ya tiene esta especialidad asignada"));*/
+            medico.addEspecialidad(especialidad);
+        }
+
+
         medicoRepository.save(medico);
 
         return ResponseEntity.ok(new MessageResponse("Especialidad asignada con éxito"));
@@ -223,48 +227,49 @@ public class MedicoController {
     @GetMapping("/medicos-con-especialidades")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Map<String, Object>>> getAllMedicoEspecialidades() {
-        // Obtener todas las relaciones de médicos y especialidades
-        List<MedicoEspecialidad> medicoEspecialidades = medicoEspecialidadRepository.findAll();
+        // Obtener todos los médicos
+        List<Medico> medicos = medicoRepository.findAll();
 
-        // Transformar las relaciones en un formato más adecuado para la respuesta
-        List<Map<String, Object>> responseList = medicoEspecialidades.stream()
-                .map(medicoEspecialidad -> {
+        // Transformar los datos de médicos y sus especialidades
+        List<Map<String, Object>> responseList = medicos.stream()
+                .map(medico -> {
                     Map<String, Object> responseMap = new HashMap<>();
-
-                    // Obtener el médico y especialidad
-                    Medico medico = medicoEspecialidad.getMedico();
-                    Especialidad especialidad = medicoEspecialidad.getEspecialidad();
-
-                    // Crear el objeto de respuesta para el médico
-                    Map<String, Object> medicoResponse = new HashMap<>();
-                    medicoResponse.put("medicoId", medico.getId());
-                    medicoResponse.put("medicoCi", medico.getCi());
-                    //medicoResponse.put("medicoSexo", medico.getSexo());
-                    //medicoResponse.put("medicoTelefono", medico.getTelefono());
 
                     // Obtener el usuario asociado al médico
                     User user = medico.getUser();
                     Map<String, Object> userResponse = new HashMap<>();
-                    userResponse.put("userId", user.getId());
+                    userResponse.put("id", user.getId());
                     userResponse.put("username", user.getUsername());
-                    userResponse.put("email", user.getEmail());
+                    //userResponse.put("email", user.getEmail());
 
-                    // Crear el objeto de respuesta para la especialidad
-                    Map<String, Object> especialidadResponse = new HashMap<>();
-                    especialidadResponse.put("especialidadId", especialidad.getId());
-                    especialidadResponse.put("especialidadNombre", especialidad.getNombre());
-                    //especialidadResponse.put("especialidadDescripcion", especialidad.getDescripcion());
+                    // Crear el objeto de respuesta para el médico
+                    Map<String, Object> medicoResponse = new HashMap<>();
+                    medicoResponse.put("id", medico.getId());
+                    //medicoResponse.put("ci", medico.getCi());
+                    //medicoResponse.put("medicoSexo", medico.getSexo());
+                    //medicoResponse.put("medicoTelefono", medico.getTelefono());
+
+                    // Crear la lista de especialidades
+                    List<Map<String, Object>> especialidadesResponse = medico.getEspecialidades().stream()
+                            .map(especialidad -> {
+                                Map<String, Object> especialidadResponse = new HashMap<>();
+                                especialidadResponse.put("id", especialidad.getId());
+                                especialidadResponse.put("nombre", especialidad.getNombre());
+                                //especialidadResponse.put("especialidadDescripcion", especialidad.getDescripcion());
+                                return especialidadResponse;
+                            })
+                            .collect(Collectors.toList());
 
                     // Agregar los datos a la respuesta final
                     responseMap.put("medico", medicoResponse);
                     responseMap.put("user", userResponse);
-                    responseMap.put("especialidad", especialidadResponse);
+                    responseMap.put("especialidades", especialidadesResponse);
 
                     return responseMap;
                 })
                 .collect(Collectors.toList());
 
-        // Devolver la lista de relaciones médico-especialidad con información del usuario
+        // Devolver la lista de médicos con sus especialidades asignadas y el usuario relacionado
         return ResponseEntity.ok(responseList);
     }
 

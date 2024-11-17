@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
+@Transactional
 @Component
 public class DataInitializer implements CommandLineRunner {
 
@@ -43,7 +44,6 @@ public class DataInitializer implements CommandLineRunner {
             roleRepository.save(roleAdmin);
         }
 
-
         if(userRepository.count() == 0){
             Set<ERole> rolesVariosPaciente = new HashSet<>();
             rolesVariosPaciente.add(ERole.ROLE_PACIENTE);
@@ -70,7 +70,9 @@ public class DataInitializer implements CommandLineRunner {
             createEspecialidad("Dermatología", "Especialidad que trata las enfermedades de la piel, cabello y uñas.");
             createEspecialidad("Oncología", "Especialidad médica que se ocupa del diagnóstico y tratamiento del cáncer.");
         }
-        //assignEspecialidadesToMedicos();
+        assignEspecialidadesToMedicos();
+
+        System.out.println("-------------DATAINITIALIZER CREADO EXITOSAMENTE----------");
     }
 
     private void createUser(String username, String email, String password, Set<ERole> roles) {
@@ -96,6 +98,7 @@ public class DataInitializer implements CommandLineRunner {
             }
         }
     }
+
     private void createMedico(String username, String email, String password,String ci,String sexo,String telefono) {
         if (!userRepository.existsByUsername(username)) {
             User user = new User(username, email, passwordEncoder.encode(password));
@@ -116,6 +119,7 @@ public class DataInitializer implements CommandLineRunner {
             medicoRepository.save(medico);
         }
     }
+
     private void createEspecialidad(String nombre, String descripcion) {
         // Verificamos si la especialidad ya existe
         Optional<Especialidad> especialidadOpt = especialidadRepository.findByNombre(nombre);
@@ -130,33 +134,57 @@ public class DataInitializer implements CommandLineRunner {
     @Transactional
     private void assignEspecialidadesToMedicos() {
         // Asignar especialidades a médicos para la inicialización
-        Optional<Medico> medicoOpt = medicoRepository.findById(1L); // Buscar el primer médico por ID
+        Optional<Medico> medicoOpt = medicoRepository.findById(1L);
+        //System.out.println("Medico encontrado: " + medicoOpt.isPresent());  // Verifica si el médico fue encontrado
+
+        // Buscar las especialidades por nombre
         Optional<Especialidad> cardiologia = especialidadRepository.findByNombre("Cardiología");
+        //System.out.println("Cardiología encontrada: " + cardiologia.isPresent());  // Verifica si se encontró Cardiología
+
         Optional<Especialidad> neurologia = especialidadRepository.findByNombre("Neurología");
+        //System.out.println("Neurología encontrada: " + neurologia.isPresent());  // Verifica si se encontró Neurología
 
+        // Si tanto el médico como las especialidades existen, proceder con la asignación
         if (medicoOpt.isPresent() && cardiologia.isPresent() && neurologia.isPresent()) {
-            Medico medico = medicoOpt.get();
-            Especialidad cardiologiaEspecialidad = cardiologia.get();
-            Especialidad neurologiaEspecialidad = neurologia.get();
+            Medico medico = medicoOpt.get();  // Obtener el médico
+            Especialidad cardiologiaEspecialidad = cardiologia.get();  // Obtener la especialidad de Cardiología
+            Especialidad neurologiaEspecialidad = neurologia.get();  // Obtener la especialidad de Neurología
 
-            // Asociamos las especialidades con el médico
             medico.addEspecialidad(cardiologiaEspecialidad);
             medico.addEspecialidad(neurologiaEspecialidad);
 
             medicoRepository.save(medico);
+            //System.out.println("Médico guardado correctamente con las especialidades."+medico.getEspecialidades().toString());
+        }
+
+        medicoOpt = medicoRepository.findById(2L); // Buscar el primer médico por ID
+        cardiologia = especialidadRepository.findByNombre("Dermatología");
+        neurologia = especialidadRepository.findByNombre("Neurología");
+
+
+        if (medicoOpt.isPresent() && cardiologia.isPresent() && neurologia.isPresent()) {
+            Medico medico1 = medicoOpt.get();
+            Especialidad cardiologiaEspecialidad = cardiologia.get();
+            Especialidad neurologiaEspecialidad = neurologia.get();
+
+            // Asociamos las especialidades con el médico
+            medico1.addEspecialidad(cardiologiaEspecialidad);
+            medico1.addEspecialidad(neurologiaEspecialidad);
+
+            medicoRepository.save(medico1);
         }
 
         // Asignar más especialidades a otros médicos de la misma forma si es necesario
-        medicoOpt = medicoRepository.findById(2L); // Buscar el segundo médico
+        medicoOpt = medicoRepository.findById(3L); // Buscar el segundo médico
         Optional<Especialidad> pediatria = especialidadRepository.findByNombre("Pediatría");
 
         if (medicoOpt.isPresent() && pediatria.isPresent()) {
-            Medico medico = medicoOpt.get();
+            Medico medico2 = medicoOpt.get();
             Especialidad pediatriaEspecialidad = pediatria.get();
 
             // Asociamos la especialidad con el médico
-            medico.addEspecialidad(pediatriaEspecialidad);
-            medicoRepository.save(medico);
+            medico2.addEspecialidad(pediatriaEspecialidad);
+            medicoRepository.save(medico2);
         }
     }
 

@@ -17,7 +17,7 @@ public class Medico {
     private String sexo;
     private String telefono;
 
-    @ManyToOne(fetch = FetchType.LAZY/*, cascade = CascadeType.ALL*/)
+    @ManyToOne(fetch = FetchType.EAGER/*, cascade = CascadeType.ALL*/)
     @JoinColumn(name = "user_id")  // Clave foránea hacia User
     private User user;  // Relación con el Usuario (clave foránea)
 
@@ -96,4 +96,15 @@ public class Medico {
     public void removeEspecialidad(Especialidad especialidad) {
         this.especialidades.remove(especialidad);
     }
+
+    @Override
+    public String toString() {
+        return "Medico{" +
+                "id=" + id +
+                ", ci='" + ci + '\'' +
+                ", sexo='" + sexo + '\'' +
+                ", telefono='" + telefono + '\'' +
+                '}';
+    }
 }
+
