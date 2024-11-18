@@ -161,7 +161,6 @@ public class DataInitializer implements CommandLineRunner {
         cardiologia = especialidadRepository.findByNombre("Dermatología");
         neurologia = especialidadRepository.findByNombre("Neurología");
 
-
         if (medicoOpt.isPresent() && cardiologia.isPresent() && neurologia.isPresent()) {
             Medico medico1 = medicoOpt.get();
             Especialidad cardiologiaEspecialidad = cardiologia.get();

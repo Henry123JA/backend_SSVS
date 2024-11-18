@@ -10,9 +10,9 @@ import com.bezkoder.spring.security.postgresql.payload.response.MessageResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-        import java.util.List;
+import java.util.List;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -24,12 +24,14 @@ public class EspecialidadController {
 
     // Obtener todas las especialidades
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<Especialidad> getAllEspecialidades() {
         return especialidadRepository.findAll();
     }
 
     // Crear una nueva especialidad
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Especialidad> createEspecialidad(@RequestBody Especialidad especialidad) {
         Especialidad newEspecialidad = especialidadRepository.save(especialidad);
         return new ResponseEntity<>(newEspecialidad, HttpStatus.CREATED);
@@ -37,6 +39,7 @@ public class EspecialidadController {
 
     // Obtener especialidad por ID
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Especialidad> getEspecialidadById(@PathVariable Long id) {
         Especialidad especialidad = especialidadRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Especialidad no encontrada con id " + id));
@@ -45,6 +48,7 @@ public class EspecialidadController {
 
     // Actualizar especialidad
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Especialidad> updateEspecialidad(@PathVariable Long id, @RequestBody Especialidad especialidadDetails) {
         Especialidad especialidad = especialidadRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Especialidad no encontrada con id " + id));
@@ -58,6 +62,7 @@ public class EspecialidadController {
 
     // Eliminar especialidad
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<MessageResponse> deleteEspecialidad(@PathVariable Long id) {
         Especialidad especialidad = especialidadRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Especialidad no encontrada con id " + id));
