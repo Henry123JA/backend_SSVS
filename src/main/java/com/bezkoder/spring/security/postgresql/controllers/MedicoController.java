@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import com.bezkoder.spring.security.postgresql.models.*;
 import com.bezkoder.spring.security.postgresql.payload.request.*;
 
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins = {"http://localhost:4200","*"})
 @RestController
 @RequestMapping("/api/medicos")
 public class MedicoController {
@@ -38,7 +38,6 @@ public class MedicoController {
 
     @Autowired
     private EspecialidadRepository especialidadRepository;
-
 
     @Autowired
     private MedicoService medicoService;

@@ -38,10 +38,7 @@ public class Bitacora {
         this.fechaHora = fechaHora;
         this.user = user;
     }
-/*
-    public Bitacora(String tipoAccion, String descripcionAccion, String ip, ZonedDateTime fechaHora, User user) {
-    }
-*/
+
     // Getters and Setters
     public Long getId() {
         return id;

@@ -10,6 +10,7 @@ import com.bezkoder.spring.security.postgresql.payload.response.MessageResponse;
 import com.bezkoder.spring.security.postgresql.repository.RoleRepository;
 import com.bezkoder.spring.security.postgresql.repository.UserRepository;
 import com.bezkoder.spring.security.postgresql.repository.MedicoRepository;
+import com.bezkoder.spring.security.postgresql.repository.PacienteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,10 +29,7 @@ import com.bezkoder.spring.security.postgresql.payload.request.*;
 
 //import static jdk.internal.org.jline.utils.Colors.s;
 
-
-//@CrossOrigin(origins = "http://localhost:4200")
-
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins = {"http://localhost:4200","*"})
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -46,6 +44,9 @@ public class UserController {
     MedicoRepository medicoRepository;
 
     @Autowired
+    PacienteRepository pacienteRepository;
+
+    @Autowired
     PasswordEncoder encoder;
 
     @GetMapping
@@ -58,6 +59,7 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Object> createUser(@RequestBody CreateUserRequest createUserRequest) {
         boolean isMedico = false;
+        boolean isPaciente = false;
         // Verificar si el usuario ya existe por nombre de usuario o correo
         if (userRepository.existsByUsername(createUserRequest.getUsername())) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: El nombre de usuario ya está en uso"));
@@ -72,6 +74,7 @@ public class UserController {
 
         // Si no se proporcionan roles, asignar el rol por defecto ROLE_PACIENTE
         if (createUserRequest.getRoles() == null || createUserRequest.getRoles().isEmpty()) {
+            isPaciente = !isPaciente;
             Role defaultRole = roleRepository.findByName(ERole.ROLE_PACIENTE)
                     .orElseThrow(() -> new RuntimeException("Error: Role not found."));
             user.setRoles(new HashSet<>(Collections.singletonList(defaultRole)));
@@ -80,22 +83,23 @@ public class UserController {
             Set<Role> roles = new HashSet<>();
             for (String roleName : createUserRequest.getRoles()) {
                 switch (roleName) {
-                    case "ROLE_ADMIN":
+                    case "ROLE_ADMIN":{
                         Role adminRole = roleRepository.findByName(ERole.ROLE_ADMIN)
                                 .orElseThrow(() -> new RuntimeException("Error: Role not found."));
                         roles.add(adminRole);
-                        break;
-                    case "ROLE_MEDICO":
+                        break;}
+                    case "ROLE_MEDICO":{
                         Role medicoRole = roleRepository.findByName(ERole.ROLE_MEDICO)
                                 .orElseThrow(() -> new RuntimeException("Error: Role not found."));
                         roles.add(medicoRole);
                         isMedico = !isMedico;
-                        break;
-                    case "ROLE_PACIENTE":
+                        break;}
+                    case "ROLE_PACIENTE":{
                         Role pacienteRole = roleRepository.findByName(ERole.ROLE_PACIENTE)
                                 .orElseThrow(() -> new RuntimeException("Error: Role not found."));
                         roles.add(pacienteRole);
-                        break;
+                        isPaciente = !isPaciente;
+                        break;}
                     default:
                         throw new RuntimeException("Error: Invalid role.");
                 }
@@ -109,6 +113,11 @@ public class UserController {
             // Crear un nuevo Medico con los valores de ci, sexo, telefono como null
             Medico newMedico = new Medico(null, null, null, savedUser);
             medicoRepository.save(newMedico);
+        }
+        if (isPaciente) {
+            // Crear un nuevo Medico con los valores de ci, sexo, telefono como null
+            Paciente newPaciente = new Paciente(null, null, null,null,null, savedUser);
+            pacienteRepository.save(newPaciente);
         }
         return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
     }
@@ -206,11 +215,18 @@ public class UserController {
 
         boolean isMedico = user.getRoles().stream()
                 .anyMatch(role -> role.getName().equals(ERole.ROLE_MEDICO));
-
         if (isMedico) {
             Medico medico = medicoRepository.findByUser(user)
                     .orElseThrow(() -> new ResourceNotFoundException("Medico not found for user with id " + id));
             medicoRepository.delete(medico);
+        }
+
+        boolean isPaciente = user.getRoles().stream()
+                .anyMatch(role -> role.getName().equals(ERole.ROLE_PACIENTE));
+        if (isPaciente) {
+            Paciente paciente = pacienteRepository.findByUser(user)
+                    .orElseThrow(() -> new ResourceNotFoundException("Paciente not found for user with id " + id));
+            pacienteRepository.delete(paciente);
         }
 
         userRepository.delete(user);

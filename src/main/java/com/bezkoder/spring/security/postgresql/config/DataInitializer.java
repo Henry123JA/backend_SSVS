@@ -26,6 +26,9 @@ public class DataInitializer implements CommandLineRunner {
     MedicoRepository medicoRepository;
 
     @Autowired
+    PacienteRepository pacienteRepository;
+
+    @Autowired
     EspecialidadRepository especialidadRepository;
 
     @Autowired
@@ -60,15 +63,18 @@ public class DataInitializer implements CommandLineRunner {
             createUser("medico","medico@medico.com","password",rolesVariosMedico);
             createUser("admin","admin@admin.com","password",rolesVariosAdmin);
 
-            createMedico("medico1","medico1@medico1.com","password","8960407","M","77906781");
-            createMedico("medico2","medico2@medico2.com","password","3960306","F","77906711");
+            createMedico("medico1","medico1@medico1.com","password","896060","M","77906781");
+            createMedico("medico2","medico2@medico2.com","password","396061","F","77906711");
+
+            createPaciente("paciente1","paciente1@paciente1.com","password","896062","M","67906712","2015-12-12","1000");
+            createPaciente("paciente2","paciente2@paciente2.com","password","396063","O","67906713","2010-06-01","1001");
         }
         if (especialidadRepository.count() == 0) {
             createEspecialidad("Cardiología", "Especialidad médica que se ocupa de las enfermedades del corazón y del sistema circulatorio.");
             createEspecialidad("Neurología", "Especialidad que se dedica al diagnóstico y tratamiento de los trastornos del sistema nervioso.");
             createEspecialidad("Pediatría", "Rama de la medicina dedicada al cuidado de los niños y adolescentes.");
             createEspecialidad("Dermatología", "Especialidad que trata las enfermedades de la piel, cabello y uñas.");
-            createEspecialidad("Oncología", "Especialidad médica que se ocupa del diagnóstico y tratamiento del cáncer.");
+            createEspecialidad("Oncologia", "Especialidad medica que se ocupa del diagnostico y tratamiento del cáncer.");
         }
         assignEspecialidadesToMedicos();
 
@@ -92,9 +98,14 @@ public class DataInitializer implements CommandLineRunner {
             // Si el usuario tiene el rol MEDICO, crear un registro en la tabla 'medicos'
             if (roles.contains(ERole.ROLE_MEDICO)) {
                 Medico medico = new Medico();
-                medico.setUser(user);  // Establecemos la relación con el usuario
-                // Los demás campos como ci, sexo y telefono se dejan como null por defecto
+                medico.setUser(user);
                 medicoRepository.save(medico);
+            }
+
+            if (roles.contains(ERole.ROLE_PACIENTE)) {
+                Paciente paciente = new Paciente();
+                paciente.setUser(user);
+                pacienteRepository.save(paciente);
             }
         }
     }
@@ -117,6 +128,28 @@ public class DataInitializer implements CommandLineRunner {
             medico.setSexo(sexo);
             medico.setTelefono(telefono);
             medicoRepository.save(medico);
+        }
+    }
+    private void createPaciente(String username, String email, String password, String ci, String sexo,String telefono,String fechaNacimiento,String codigoAsegurado) {
+        if (!userRepository.existsByUsername(username)) {
+            User user = new User(username, email, passwordEncoder.encode(password));
+            Set<Role> userRoles = new HashSet<>();
+
+            Role userRole = roleRepository.findByName(ERole.ROLE_PACIENTE)
+                    .orElseThrow(() -> new RuntimeException("Error: Role " + " not found."));
+            userRoles.add(userRole);
+
+            user.setRoles(userRoles);
+            userRepository.save(user);
+
+            Paciente paciente = new Paciente();
+            paciente.setUser(user);
+            paciente.setCi(ci);
+            paciente.setSexo(sexo);
+            paciente.setTelefono(telefono);
+            paciente.setFechaNacimiento(fechaNacimiento);
+            paciente.setCodigoAsegurado(codigoAsegurado);
+            pacienteRepository.save(paciente);
         }
     }
 
