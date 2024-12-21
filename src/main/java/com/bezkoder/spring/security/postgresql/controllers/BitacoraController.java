@@ -47,12 +47,12 @@ public class BitacoraController {
         System.out.println("de ip: "+bitacoraRequest.getIp());
         */
         ZonedDateTime fechaHora = ZonedDateTime.now(ZoneId.of("America/La_Paz"));
-        System.out.println("de fecha-hora (original): " + fechaHora);
+        //System.out.println("de fecha-hora (original): " + fechaHora);
 
         // Si necesitas formatear la fecha antes de enviarla:
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         String fechaHoraStr = fechaHora.format(formatter);
-        System.out.println("de fecha-hora (formateada): " + fechaHoraStr);
+        //System.out.println("de fecha-hora (formateada): " + fechaHoraStr);
         if (!user.isPresent()) {
             return ResponseEntity.badRequest().body(null); // Usuario no encontrado
         }
