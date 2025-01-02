@@ -165,5 +165,50 @@ public class PacienteController {
 
         return ResponseEntity.noContent().build();
     }
+
+    //lista devuelve los usuarios con id de userId
+    @GetMapping("/byUser/{userId}")
+    @PreAuthorize("hasRole('PACIENTE')")
+    public ResponseEntity<List<Paciente>> getPacientesByUserId(@PathVariable Long userId) {
+        // Buscar los pacientes asociados al userId proporcionado
+        List<Paciente> pacientes = pacienteRepository.getPacientesByUserId (userId);
+
+        // Si no se encuentran pacientes, devolver un 404 Not Found
+        if (pacientes.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        List<Paciente> pacientesResponse = new ArrayList<>();
+
+        for (Paciente paciente : pacientes) {
+            // Creamos un nuevo objeto Paciente con los datos que necesitamos
+            Paciente pacienteResponse = new Paciente();
+
+            // Copiar solo los campos necesarios de Paciente
+            pacienteResponse.setId(paciente.getId());
+            pacienteResponse.setCi(paciente.getCi());
+            pacienteResponse.setSexo(paciente.getSexo());
+            pacienteResponse.setTelefono(paciente.getTelefono());
+            pacienteResponse.setFechaNacimiento(paciente.getFechaNacimiento());
+            pacienteResponse.setCodigoAsegurado(paciente.getCodigoAsegurado());
+
+            // Crear el objeto User simplificado
+            User userResponse = new User();
+            userResponse.setId(paciente.getUser().getId());
+            userResponse.setUsername(paciente.getUser().getUsername());
+            userResponse.setEmail(paciente.getUser().getEmail());
+            userResponse.setPassword("vacio");
+
+            // Asignar el usuario simplificado al paciente
+            pacienteResponse.setUser(userResponse);
+
+            // Añadir a la lista final
+            pacientesResponse.add(pacienteResponse);
+        }
+
+        // Devolver la lista de pacientes con la información simplificada
+        return ResponseEntity.ok(pacientesResponse);
+    }
+
 }
 

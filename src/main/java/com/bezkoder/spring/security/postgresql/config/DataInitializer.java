@@ -2,12 +2,14 @@ package com.bezkoder.spring.security.postgresql.config;
 
 import com.bezkoder.spring.security.postgresql.models.*;
 import com.bezkoder.spring.security.postgresql.repository.*;
+import com.bezkoder.spring.security.postgresql.security.services.HorarioService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -30,6 +32,18 @@ public class DataInitializer implements CommandLineRunner {
 
     @Autowired
     EspecialidadRepository especialidadRepository;
+
+    @Autowired
+    FichaNuevaRepository fichaNuevaRepository;
+
+    @Autowired
+    HorarioRepository horarioRepository;
+
+    @Autowired
+    BloqueHorarioRepository bloqueHorarioRepository;
+
+    @Autowired
+    HorarioService horarioService;
 
     @Autowired
     PasswordEncoder passwordEncoder;
@@ -78,6 +92,14 @@ public class DataInitializer implements CommandLineRunner {
         }
         assignEspecialidadesToMedicos();
 
+        if(horarioRepository.count()==0) {
+            createHorario(1L, "Martes", LocalTime.of(10, 0), LocalTime.of(11, 30), 15, "activo");
+            createHorario(1L, "Jueves", LocalTime.of(10, 0), LocalTime.of(11, 30), 15, "activo");
+        }
+
+        if(fichaNuevaRepository.count()==0){
+            crearFichasParaMedico();
+        }
         System.out.println("-------------DATAINITIALIZER CREADO EXITOSAMENTE----------");
     }
 
@@ -218,6 +240,93 @@ public class DataInitializer implements CommandLineRunner {
             medico2.addEspecialidad(pediatriaEspecialidad);
             medicoRepository.save(medico2);
         }
+    }
+
+    private void createHorario(Long medicoId, String diaSemana, LocalTime horaInicio, LocalTime horaFin, int duracion, String estado) {
+        Optional<Medico> medicoOpt = medicoRepository.findById(medicoId);
+
+        if (medicoOpt.isPresent()) {
+            Medico medico = medicoOpt.get();
+            Horario horario = new Horario(horaInicio, horaFin, duracion, diaSemana, estado, medico);
+            Horario newHorario = horarioRepository.save(horario);
+            horarioService.crearHorariosConBloques(newHorario);
+
+        }
+    }
+
+    private void crearFichasParaMedico() {
+        // Obtener al médico con ID 1
+        Optional<Medico> medicoOpt = medicoRepository.findById(1L);
+        if (!medicoOpt.isPresent()) {
+            throw new RuntimeException("Error: Medico no encontrado con ID 1.");
+        }
+
+        Medico medico = medicoOpt.get();
+
+        // Obtener las especialidades "Cardiología" y "Neurología"
+        Optional<Especialidad> cardiologia = especialidadRepository.findByNombre("Cardiología");
+        if (!cardiologia.isPresent()) {
+            throw new RuntimeException("Error: Especialidad 'Cardiología' no encontrada.");
+        }
+
+        Optional<Especialidad> neurologia = especialidadRepository.findByNombre("Neurología");
+        if (!neurologia.isPresent()) {
+            throw new RuntimeException("Error: Especialidad 'Neurología' no encontrada.");
+        }
+
+        // Obtener los bloques de horario con ID 2 y 9
+        Optional<BloqueHorario> bloque1 = bloqueHorarioRepository.findById(2L);
+        if (!bloque1.isPresent()) {
+            throw new RuntimeException("Error: BloqueHorario con ID 2 no encontrado.");
+        }
+
+        Optional<BloqueHorario> bloque2 = bloqueHorarioRepository.findById(9L);
+        if (!bloque2.isPresent()) {
+            throw new RuntimeException("Error: BloqueHorario con ID 9 no encontrado.");
+        }
+
+        // Marcar los bloques como "ocupados"
+        BloqueHorario bloque1Actualizado = bloque1.get();
+        bloque1Actualizado.setEstado("ocupado");
+        bloque1Actualizado = bloqueHorarioRepository.save(bloque1Actualizado);
+
+        BloqueHorario bloque2Actualizado = bloque2.get();
+        bloque2Actualizado.setEstado("ocupado");
+        bloque2Actualizado = bloqueHorarioRepository.save(bloque2Actualizado);
+
+        // Obtener pacientes con ID 1 y 2
+        Optional<Paciente> paciente1Opt = pacienteRepository.findById(1L);
+        if (!paciente1Opt.isPresent()) {
+            throw new RuntimeException("Error: Paciente con ID 1 no encontrado.");
+        }
+        Paciente paciente1 = paciente1Opt.get();
+
+        Optional<Paciente> paciente2Opt = pacienteRepository.findById(2L);
+        if (!paciente2Opt.isPresent()) {
+            throw new RuntimeException("Error: Paciente con ID 2 no encontrado.");
+        }
+        Paciente paciente2 = paciente2Opt.get();
+
+        // Crear las dos fichas
+        crearFicha(medico, paciente1, cardiologia.get(), bloque1Actualizado);
+        crearFicha(medico, paciente2, neurologia.get(), bloque2Actualizado);
+    }
+
+    private void crearFicha(Medico medico, Paciente paciente, Especialidad especialidad, BloqueHorario bloqueHorario) {
+        // Crear la ficha para un paciente
+        FichaNueva ficha = new FichaNueva();
+        ficha.setPaciente(paciente);
+        ficha.setMedicoId(medico.getId());
+        ficha.setEspecialidad(especialidad);
+        ficha.setBloqueHorario(bloqueHorario);
+        ficha.setFecha(ficha.getFechaActualLaPaz()); // Fecha actual en La Paz
+        ficha.setHora(ficha.getHoraActualLaPaz());   // Hora actual en La Paz
+        ficha.setEstado("pendiente");
+
+        // Guardar la ficha en la base de datos
+        FichaNueva newFicha = fichaNuevaRepository.save(ficha);
+
+        System.out.println("Ficha creada para el paciente: " + paciente.getId() + " con especialidad: " + especialidad.getNombre());
     }
 
 }

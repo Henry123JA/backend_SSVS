@@ -37,7 +37,7 @@ public class BitacoraController {
 
     // Registrar una nueva bitácora
     @PostMapping("/registro")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PACIENTE') or hasRole('ADMIN') or hasRole('MEDICO')")
     public ResponseEntity<Bitacora> registrarBitacora(@RequestBody BitacoraRequest  bitacoraRequest) {
         Optional<User> user = userRepository.findById(bitacoraRequest.getUserId());
         /*

@@ -47,7 +47,7 @@ public class MedicoController {
 
     // Obtener todos los médicos
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PACIENTE') or hasRole('ADMIN')")
     public ResponseEntity<List<Medico>> getAllMedicos() {
         // Obtenemos todos los médicos
         List<Medico> medicos = medicoRepository.findAll();
@@ -271,6 +271,30 @@ public class MedicoController {
         // Devolver la lista de médicos con sus especialidades asignadas y el usuario relacionado
         return ResponseEntity.ok(responseList);
     }
+
+    // Obtener las especialidades de un médico por su ID
+    @GetMapping("/{medicoId}/especialidades")
+    @PreAuthorize("hasRole('PACIENTE') or hasRole('ADMIN')")
+    public ResponseEntity<List<Map<String, Object>>> getEspecialidadesByMedicoId(@PathVariable Long medicoId) {
+        // Buscar el médico por su ID
+        Medico medico = medicoRepository.findById(medicoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Medico no encontrado con id " + medicoId));
+
+        // Crear la respuesta de especialidades asociadas a este médico
+        List<Map<String, Object>> especialidadesResponse = medico.getEspecialidades().stream()
+                .map(especialidad -> {
+                    Map<String, Object> especialidadResponse = new HashMap<>();
+                    especialidadResponse.put("id", especialidad.getId());
+                    especialidadResponse.put("nombre", especialidad.getNombre());
+                    //especialidadResponse.put("descripcion", especialidad.getDescripcion());
+                    return especialidadResponse;
+                })
+                .collect(Collectors.toList());
+
+        // Devolver la lista de especialidades
+        return ResponseEntity.ok(especialidadesResponse);
+    }
+
 
 
 }
