@@ -1,7 +1,7 @@
 package com.bezkoder.spring.security.postgresql.models;
 
 import jakarta.persistence.*;
-        import java.time.LocalDate;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;

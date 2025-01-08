@@ -7,16 +7,17 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalTime;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Transactional
 @Component
 public class DataInitializer implements CommandLineRunner {
+
 
     @Autowired
     RoleRepository roleRepository;
@@ -43,10 +44,26 @@ public class DataInitializer implements CommandLineRunner {
     BloqueHorarioRepository bloqueHorarioRepository;
 
     @Autowired
+    AntecedenteRepository antecedenteRepository;
+
+    @Autowired
+    ConsultaRepository consultaRepository;
+
+    @Autowired
+    RecetaRepository recetaRepository;
+
+    @Autowired
+    ExamenRepository examenRepository;
+
+    @Autowired
+    TratamientoRepository tratamientoRepository;
+
+    @Autowired
     HorarioService horarioService;
 
     @Autowired
     PasswordEncoder passwordEncoder;
+
 
     @Override
     public void run(String... args) throws Exception {
@@ -95,11 +112,57 @@ public class DataInitializer implements CommandLineRunner {
         if(horarioRepository.count()==0) {
             createHorario(1L, "Martes", LocalTime.of(10, 0), LocalTime.of(11, 30), 15, "activo");
             createHorario(1L, "Jueves", LocalTime.of(10, 0), LocalTime.of(11, 30), 15, "activo");
+            createHorario(2L, "Lunes", LocalTime.of(9, 0), LocalTime.of(10, 0), 10, "activo");
+            createHorario(2L, "Miercoles", LocalTime.of(9, 0), LocalTime.of(10, 0), 10, "activo");
         }
 
         if(fichaNuevaRepository.count()==0){
             crearFichasParaMedico();
+            crearFichaNuevaParaPaciente2();
         }
+
+        if(antecedenteRepository.count()==0){
+            crearAntecedentesPaciente();
+        }
+        if (consultaRepository.count() == 0) {
+            // Consultas para la ficha con id 1
+            FichaNueva ficha1 = fichaNuevaRepository.findById(1L)
+                    .orElseThrow(() -> new RuntimeException("Ficha con id 1 no encontrada"));
+            Consulta consulta1 = crearConsulta(ficha1, "Dolor en el pecho", "Posible infarto", "Analítica y ECG", "El paciente fue referido para más pruebas");
+
+            // Consultas para la ficha con id 2
+            FichaNueva ficha2 = fichaNuevaRepository.findById(2L)
+                    .orElseThrow(() -> new RuntimeException("Ficha con id 2 no encontrada"));
+            Consulta consulta2 = crearConsulta(ficha2, "Dolor de cabeza persistente", "Migraña", "Reposo y analgésicos", "El paciente debe realizar seguimiento si los síntomas persisten");
+            //----------------------para crear las recetas--------------------------------
+            crearReceta(consulta1, "Aspirina 500mg", "Tomar 1 cada 8 horas durante 7 días");
+            crearReceta(consulta2, "Ibuprofeno 400mg", "Tomar 1 cada 6 horas durante 5 días");
+
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            //----------------------para crear los tratamientos--------------------------------
+            crearTratamiento(consulta1,"Tratamiento para la Consulta 1: Posible infarto",
+                        dateFormat.parse("2024-10-10"),
+                        dateFormat.parse("2024-11-10"),
+            "Diagnosticado con un posible infarto y requiere realizarse un seguimiento semanal para evaluar su respuesta al tratamiento.");
+
+
+            crearTratamiento(consulta2,"Tratamiento para la Consulta 2: Migraña persistente",
+                        dateFormat.parse("2024-12-05"),
+                        dateFormat.parse("2025-1-10"),
+            "Se recomienda reposo absoluto y medicación analgésica para el alivio del dolor. Se debe realizar un seguimiento de los síntomas, especialmente si la migraña persiste o se intensifica, para determinar si se requiere un cambio en el tratamiento.");
+
+            //----------------------para crear los examenes--------------------------------
+            // Crear los exámenes para la consulta 1
+            Examen examen1 = new Examen("Laboratorio Central", "Electrocardiograma (ECG)", "Normal", consulta1);
+            examen1.setFechaExamen("2024-10-10");
+            examenRepository.save(examen1);
+
+            Examen examen2 = new Examen("Laboratorio Central", "Radiografía de Tórax", "Sin anomalías", consulta1);
+            examen2.setFechaExamen("2024-10-11");
+            examenRepository.save(examen2);
+
+        }
+
         System.out.println("-------------DATAINITIALIZER CREADO EXITOSAMENTE----------");
     }
 
@@ -328,5 +391,110 @@ public class DataInitializer implements CommandLineRunner {
 
         System.out.println("Ficha creada para el paciente: " + paciente.getId() + " con especialidad: " + especialidad.getNombre());
     }
+    private void crearFichaNuevaParaPaciente2() {
+        // Obtener al paciente con ID 2
+        Optional<Paciente> paciente2Opt = pacienteRepository.findById(2L);
+        if (!paciente2Opt.isPresent()) {
+            throw new RuntimeException("Error: Paciente con ID 2 no encontrado.");
+        }
+        Paciente paciente2 = paciente2Opt.get();
 
+        // Obtener al médico con ID 2
+        Optional<Medico> medicoOpt = medicoRepository.findById(2L);
+        if (!medicoOpt.isPresent()) {
+            throw new RuntimeException("Error: Médico con ID 2 no encontrado.");
+        }
+        Medico medico = medicoOpt.get();
+
+        // Obtener la especialidad "Dermatología"
+        Optional<Especialidad> dermatologiaOpt = especialidadRepository.findByNombre("Dermatología");
+        if (!dermatologiaOpt.isPresent()) {
+            throw new RuntimeException("Error: Especialidad 'Dermatología' no encontrada.");
+        }
+        Especialidad dermatologia = dermatologiaOpt.get();
+
+        // Obtener el bloque horario con ID 15
+        Optional<BloqueHorario> bloqueHorarioOpt = bloqueHorarioRepository.findById(15L);
+        if (!bloqueHorarioOpt.isPresent()) {
+            throw new RuntimeException("Error: BloqueHorario con ID 15 no encontrado.");
+        }
+        BloqueHorario bloqueHorario = bloqueHorarioOpt.get();
+
+        //BloqueHorario bloque1Actualizado = bloque1.get();
+        bloqueHorario.setEstado("ocupado");
+        BloqueHorario bloque1Actualizado = bloqueHorarioRepository.save(bloqueHorario);
+
+
+        crearFicha(medico, paciente2, dermatologia, bloque1Actualizado);
+
+    }
+
+
+    private void crearAntecedentesPaciente() {
+        Optional<Paciente> pacienteOpt = pacienteRepository.findById(1L);
+        if (!pacienteOpt.isPresent()) {
+            throw new RuntimeException("Error: Paciente con ID 1 no encontrado.");
+        }
+
+        Paciente paciente = pacienteOpt.get();
+
+        // Crear un objeto Antecedente
+        Antecedente antecedente = new Antecedente();
+        antecedente.setPaciente(paciente);
+
+        // Ejemplos de enfermedades base
+        String enfermedadesBase = "Hipertensión, Diabetes tipo 2, Asma";
+        antecedente.setEnfermedadesBase(enfermedadesBase);
+
+        // Ejemplos de enfermedades hereditarias
+        String enfermedadesHereditarias = "Cáncer de mama, Hipotiroidismo";
+        antecedente.setEnfermedadesHereditarias(enfermedadesHereditarias);
+
+        // Incluir medicamentos en "otras"
+        String otras = "Medicamentos: Metformina (para diabetes), Enalapril (para hipertensión), Salbutamol (para asma)";
+        antecedente.setOtras(otras);
+
+        // Guardar el antecedente en la base de datos
+        antecedenteRepository.save(antecedente);
+        System.out.println("Antecedente creado para el paciente con ID " + paciente.getId());
+    }
+
+    private Consulta crearConsulta(FichaNueva ficha, String sintomas, String diagnostico, String tratamiento, String notas) {
+        Consulta consulta = new Consulta();
+        ficha.setEstado("atendido");
+        FichaNueva newFicha = fichaNuevaRepository.save(ficha);
+        consulta.setFicha(newFicha);
+        consulta.setSintomas(sintomas);
+        consulta.setDiagnostico(diagnostico);
+        consulta.setTratamiento(tratamiento);
+        consulta.setNotas(notas);
+
+        // La fecha de consulta se establece automáticamente con @PrePersist
+        consultaRepository.save(consulta);
+
+        return consulta;
+    }
+
+    private void crearReceta(Consulta consulta, String medicamentos, String indicaciones) {
+        Receta receta = new Receta();
+        receta.setMedicamentos(medicamentos);
+        receta.setIndicaciones(indicaciones);
+        receta.setConsulta(consulta);
+
+        // La fecha de la receta se establece automáticamente con @PrePersist
+        recetaRepository.save(receta);
+
+    }
+
+    private void crearTratamiento(Consulta consulta, String descripcion, Date fechaInicio, Date fechaFin, String seguimiento) {
+        Tratamiento tratamiento = new Tratamiento();
+        tratamiento.setDescripcion(descripcion);
+        tratamiento.setFechaInicio(fechaInicio);
+        tratamiento.setFechaFin(fechaFin);
+        tratamiento.setSeguimiento(seguimiento);
+        tratamiento.setConsulta(consulta);
+
+        // La fecha de la receta se establece automáticamente con @PrePersist
+        tratamientoRepository.save(tratamiento);
+    }
 }

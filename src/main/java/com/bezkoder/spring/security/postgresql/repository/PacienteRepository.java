@@ -1,6 +1,9 @@
 package com.bezkoder.spring.security.postgresql.repository;
 
+import com.bezkoder.spring.security.postgresql.models.Consulta;
 import com.bezkoder.spring.security.postgresql.models.Paciente;
+import com.bezkoder.spring.security.postgresql.models.FichaNueva;
+import com.bezkoder.spring.security.postgresql.models.Receta;
 import com.bezkoder.spring.security.postgresql.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -19,6 +22,7 @@ public interface PacienteRepository extends JpaRepository<Paciente, Long> {
     Paciente findByUserId(Long userId);
 
     List<Paciente> getPacientesByUserId (Long userId);
+
 
 }
 

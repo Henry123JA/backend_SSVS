@@ -106,5 +106,6 @@ public class Medico {
                 ", telefono='" + telefono + '\'' +
                 '}';
     }
+
 }
 

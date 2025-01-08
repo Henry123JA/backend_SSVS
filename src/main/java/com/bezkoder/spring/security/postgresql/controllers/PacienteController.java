@@ -1,27 +1,36 @@
 package com.bezkoder.spring.security.postgresql.controllers;
 
-import com.bezkoder.spring.security.postgresql.models.ERole;
-import com.bezkoder.spring.security.postgresql.models.Paciente;
-import com.bezkoder.spring.security.postgresql.models.Role;
-import com.bezkoder.spring.security.postgresql.models.User;
-import com.bezkoder.spring.security.postgresql.repository.PacienteRepository;
-import com.bezkoder.spring.security.postgresql.repository.UserRepository;
-import com.bezkoder.spring.security.postgresql.repository.RoleRepository;
+import com.bezkoder.spring.security.postgresql.models.*;
+import com.bezkoder.spring.security.postgresql.repository.*;
 import com.bezkoder.spring.security.postgresql.payload.request.CreatePacienteRequest;
 import com.bezkoder.spring.security.postgresql.payload.response.MessageResponse;
 import com.bezkoder.spring.security.postgresql.exceptions.ResourceNotFoundException;
+import com.bezkoder.spring.security.postgresql.security.services.PacienteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @CrossOrigin(origins = {"http://localhost:4200","*"})
 @RestController
 @RequestMapping("/api/pacientes")
 public class PacienteController {
+
+    @Autowired
+    private FichaNuevaRepository fichaNuevaRepository;
+
+    @Autowired
+    private MedicoRepository medicoRepository;
+
+    @Autowired
+    private PacienteService pacienteService;
 
     @Autowired
     PacienteRepository pacienteRepository;
@@ -119,7 +128,7 @@ public class PacienteController {
 
     // Obtener un paciente por su ID
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MEDICO') or hasRole('PACIENTE')")
     public ResponseEntity<Map<String, Object>> getPacienteById(@PathVariable Long id) {
         Paciente paciente = pacienteRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente not found with id " + id));
@@ -170,6 +179,7 @@ public class PacienteController {
     @GetMapping("/byUser/{userId}")
     @PreAuthorize("hasRole('PACIENTE')")
     public ResponseEntity<List<Paciente>> getPacientesByUserId(@PathVariable Long userId) {
+        System.out.println("llegoa byUser userId");
         // Buscar los pacientes asociados al userId proporcionado
         List<Paciente> pacientes = pacienteRepository.getPacientesByUserId (userId);
 
@@ -209,6 +219,38 @@ public class PacienteController {
         // Devolver la lista de pacientes con la información simplificada
         return ResponseEntity.ok(pacientesResponse);
     }
+
+    //-------------------pacintes de un medico-------------------
+
+    @GetMapping("/medico/{userId}")
+    @PreAuthorize("hasRole('MEDICO') or hasRole('ADMIN')")
+    public ResponseEntity<List<Paciente>> getPacientesByMedico(@PathVariable Long userId) {
+        Medico medico = medicoRepository.findByUserId(userId);
+        if (medico == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        List<FichaNueva> fichas = fichaNuevaRepository.findByMedicoId(medico.getId());
+        if (fichas.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        List<Paciente> pacientes = pacienteService.getPacientesPorFichas(fichas);
+        if (pacientes.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        // Eliminar la contraseña antes de enviar la respuesta
+        pacientes.forEach(paciente -> {
+            if (paciente.getUser() != null) {
+                paciente.getUser().setPassword("vacio");
+            }
+        });
+
+        return ResponseEntity.ok(pacientes);
+    }
+
+
 
 }
 

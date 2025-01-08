@@ -10,5 +10,5 @@ import java.util.List;
 public interface FichaNuevaRepository extends JpaRepository<FichaNueva, Long> {
     List<FichaNueva> findByPacienteId(Long pacienteId);
     List<FichaNueva> findByMedicoId(Long medicoId);
-
+    List<FichaNueva> findByEspecialidadId(Long especialidadId);
 }

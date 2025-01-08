@@ -40,6 +40,24 @@ public class HorarioController {
         return ResponseEntity.ok(horarios);
     }
 
+    @GetMapping("/medico/{userId}")
+    @PreAuthorize("hasRole('MEDICO') or hasRole('ADMIN')")
+    public ResponseEntity<List<Horario>> getHorariosByMedico(@PathVariable Long userId) {
+        // Buscar al médico por userId
+        Medico medico = medicoRepository.findByUserId(userId);
+        if (medico == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Buscar horarios asociados al médico
+        List<Horario> horarios = horarioRepository.findByMedico(medico);
+        if (horarios.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(horarios);
+    }
+
     // Crear un nuevo horario
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -114,7 +132,7 @@ public class HorarioController {
 
 
     @GetMapping("/crear-bloques/{horarioId}")
-    @PreAuthorize("hasRole('PACIENTE') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PACIENTE') or hasRole('ADMIN') or hasRole('MEDICO')")
     public ResponseEntity<List<BloqueHorarioDTO>> getAllBloquesByHorarioId(@PathVariable Long horarioId) {
         // Buscar el horario
         Horario horario = horarioRepository.findById(horarioId)
@@ -145,25 +163,26 @@ public class HorarioController {
         horarioService.deleteBloque(bloque);
         return ResponseEntity.noContent().build();
     }
-//-------------------------horario-medico--------------------------------------
-@GetMapping("/horarios-medico/{medicoId}")
-@PreAuthorize("hasRole('PACIENTE') or hasRole('ADMIN')")
-public ResponseEntity<List<Horario>> getHorariosByMedicoId(@PathVariable Long medicoId) {
-    // Buscar al médico por su ID
-    Medico medico = medicoRepository.findById(medicoId)
-            .orElseThrow(() -> new ResourceNotFoundException("Medico no encontrado con id " + medicoId));
 
-    // Obtener todos los horarios asociados al médico
-    List<Horario> horarios = horarioRepository.findByMedico(medico);
+    //-------------------------horario-medico--------------------------------------
+    @GetMapping("/horarios-medico/{medicoId}")
+    @PreAuthorize("hasRole('PACIENTE') or hasRole('ADMIN') or hasRole('MEDICO')")
+    public ResponseEntity<List<Horario>> getHorariosByMedicoId(@PathVariable Long medicoId) {
+        // Buscar al médico por su ID
+        Medico medico = medicoRepository.findById(medicoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Medico no encontrado con id " + medicoId));
 
-    // Si no se encuentran horarios, retornar una respuesta vacía
-    if (horarios.isEmpty()) {
-        return ResponseEntity.noContent().build();
+        // Obtener todos los horarios asociados al médico
+        List<Horario> horarios = horarioRepository.findByMedico(medico);
+
+        // Si no se encuentran horarios, retornar una respuesta vacía
+        if (horarios.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        // Devolver la lista de horarios
+        return ResponseEntity.ok(horarios);
     }
-
-    // Devolver la lista de horarios
-    return ResponseEntity.ok(horarios);
-}
 
 
 }

@@ -24,7 +24,7 @@ public class EspecialidadController {
 
     // Obtener todas las especialidades
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MEDICO')")
     public List<Especialidad> getAllEspecialidades() {
         return especialidadRepository.findAll();
     }

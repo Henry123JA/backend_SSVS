@@ -43,12 +43,11 @@ public class FichaNuevaController {
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<FichaNueva>> getAllFichas() {
-        System.out.println("llego listar todos...");
         List<FichaNueva> fichas = fichaNuevaRepository.findAll();
         return ResponseEntity.ok(fichas);
     }
 
-    // Obtener las fichas de un paciente por su ID
+    // Obtener las fichas de un paciente por su ID----------------------
     @GetMapping("/paciente/{userId}")
     @PreAuthorize("hasRole('PACIENTE')")
     public ResponseEntity<List<FichaNueva>> getFichasByPaciente(@PathVariable Long userId) {
@@ -73,6 +72,18 @@ public class FichaNuevaController {
         List<FichaNueva> fichas = fichaNuevaRepository.findByMedicoId(medico.getId());
         return ResponseEntity.ok(fichas);
     }//hasta aqui....
+
+    // Método para obtener las fichas filtradas por especialidad
+    @GetMapping("/especialidad/{especialidadId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<FichaNueva>> getFichasByEspecialidad(@PathVariable Long especialidadId) {
+        List<FichaNueva> fichas = fichaNuevaRepository.findByEspecialidadId(especialidadId);
+
+        if (fichas.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(fichas);
+    }
 
     // Crear una nueva ficha
     @PostMapping
@@ -109,7 +120,7 @@ public class FichaNuevaController {
 
     // Obtener una ficha por ID
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PACIENTE') or hasRole('MEDICO')")
     public ResponseEntity<FichaNueva> getFichaById(@PathVariable Long id) {
         FichaNueva ficha = fichaNuevaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ficha no encontrada con el id " + id));
